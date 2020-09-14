@@ -91,7 +91,7 @@ palindromify :: String -> String
 palindromify s =
   if isPalindrome s
     then s
-    else palindromify $ (take (length s - 2) $ drop 1 s)
+    else palindromify $ (tail $ init s)
 
 ------------------------------------------------------------------------------
 -- Ex 7: implement safe integer division, that is, a function that
@@ -104,9 +104,8 @@ palindromify s =
 --   safeDiv 4 0  ==> Nothing
 
 safeDiv :: Integer -> Integer -> Maybe Integer
-safeDiv x y
-  | y == 0 = Nothing
-  | otherwise = Just (x `div` y)
+safeDiv x 0 = Nothing
+safeDiv x y = Just (x `div` y)
 
 ------------------------------------------------------------------------------
 -- Ex 8: implement a function greet that greets a person given a first
@@ -148,9 +147,8 @@ safeIndex xs i
 --   eitherDiv 4 0   ==> Left "4/0"
 
 eitherDiv :: Integer -> Integer -> Either String Integer
-eitherDiv x y
-  | y == 0 = Left $ show x ++ "/" ++ show y
-  | otherwise = Right $ x `div` y
+eitherDiv x 0 = Left $ show x ++ "/0"
+eitherDiv x y = Right $ x `div` y
 
 ------------------------------------------------------------------------------
 -- Ex 11: implement the function addEithers, which combines two values of type
