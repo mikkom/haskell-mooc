@@ -64,10 +64,9 @@ oddFactorial n
 -- * https://en.wikipedia.org/wiki/Euclidean_algorithm
 
 myGcd :: Integer -> Integer -> Integer
-myGcd a 0 = a
 myGcd 0 b = b
 myGcd a b
-  | a > b = myGcd (a - b) b
+  | a > b = myGcd b a
   | otherwise = myGcd a (b - a)
 
 ------------------------------------------------------------------------------
