@@ -5,13 +5,12 @@
 
 module Set3a where
 
-import Mooc.Todo
-
 -- Some imports you'll need.
 -- Do not add any other imports! :)
 import Data.Char
 import Data.Either
 import Data.List
+import Mooc.Todo
 
 ------------------------------------------------------------------------------
 -- Ex 1: implement the function maxBy that takes as argument a
@@ -82,11 +81,11 @@ palindromeHalfs xs = map firstHalf (filter palindrome xs)
 
 firstHalf :: String -> String
 firstHalf s = take n s
-  where n = (length s + 1) `div` 2
+  where
+    n = (length s + 1) `div` 2
 
 palindrome :: String -> Bool
-palindrome s = reverse (take n s) == drop (length s - n) s
-  where n = length s `div` 2
+palindrome s = reverse s == s
 
 ------------------------------------------------------------------------------
 -- Ex 5: Implement a function capitalize that takes in a string and
@@ -103,12 +102,10 @@ palindrome s = reverse (take n s) == drop (length s - n) s
 -- Example:
 --   capitalize "goodbye cruel world" ==> "Goodbye Cruel World"
 
-capitalizeFirst :: String -> String
-capitalizeFirst "" = ""
-capitalizeFirst (x : xs) = toUpper x : xs
-
 capitalize :: String -> String
 capitalize = unwords . map capitalizeFirst . words
+  where
+    capitalizeFirst (c : cs) = toUpper c : cs
 
 ------------------------------------------------------------------------------
 -- Ex 6: powers k max should return all the powers of k that are less
@@ -124,13 +121,8 @@ capitalize = unwords . map capitalizeFirst . words
 --   * k^max > max
 --   * the function takeWhile
 
-powers' :: Int -> Int -> [Int]
-powers' k 0 = [1]
-powers' k max = 1 : map (* k) (powers' k (max - 1))
-
-
 powers :: Int -> Int -> [Int]
-powers k max = takeWhile (<= max) $ powers' k max 
+powers k max = takeWhile (<= max) $ map (k ^) [0 .. max]
 
 ------------------------------------------------------------------------------
 -- Ex 7: implement a functional while loop. While should be a function
@@ -152,7 +144,7 @@ powers k max = takeWhile (<= max) $ powers' k max
 --   in while check tail "xyzAvvt"
 --     ==> Avvt
 
-while :: (a->Bool) -> (a->a) -> a -> a
+while :: (a -> Bool) -> (a -> a) -> a -> a
 while check update value
   | check value = while check update (update value)
   | otherwise = value
@@ -182,7 +174,7 @@ whileRight f x =
 -- for the whileRight examples:
 -- step k x doubles x if it's less than k
 step :: Int -> Int -> Either Int Int
-step k x = if x<k then Right (2*x) else Left x
+step k x = if x < k then Right (2 * x) else Left x
 
 ------------------------------------------------------------------------------
 -- Ex 9: given a list of strings and a length, return all strings that
@@ -196,7 +188,7 @@ step k x = if x<k then Right (2*x) else Left x
 -- Hint! This is a great use for list comprehensions
 
 joinToLength :: Int -> [String] -> [String]
-joinToLength n xs = filter (\s -> length s == n) [s ++ s' | s <- xs, s' <- xs]
+joinToLength n xs = [z | s <- xs, s' <- xs, let z = s ++ s', length z == n]
 
 ------------------------------------------------------------------------------
 -- Ex 10: implement the operator +|+ that returns a list with the first
@@ -211,10 +203,7 @@ joinToLength n xs = filter (\s -> length s == n) [s ++ s' | s <- xs, s' <- xs]
 --   [] +|+ []            ==> []
 
 (+|+) :: [a] -> [a] -> [a]
-(x : xs) +|+ (y : ys) = [x, y]
-[] +|+ (y : ys) = [y]
-(x : xs) +|+ [] = [x]
-[] +|+ [] = []
+xs +|+ ys = take 1 xs ++ take 1 ys
 
 ------------------------------------------------------------------------------
 -- Ex 11: remember the lectureParticipants example from Lecture 2? We
@@ -248,8 +237,7 @@ sumRights = sum . map (either (const 0) id)
 --   multiCompose [(+1), (2^), (3*)] 0 ==> 2
 
 multiCompose :: [a -> a] -> a -> a
-multiCompose [] x = x
-multiCompose (f : fs) x = f $ multiCompose fs x
+multiCompose = foldr (.) id
 
 ------------------------------------------------------------------------------
 -- Ex 13: let's consider another way to compose multiple functions. Given
@@ -268,11 +256,8 @@ multiCompose (f : fs) x = f $ multiCompose fs x
 --   multiApp reverse [tail, take 2, reverse] "foo" ==> ["oof","fo","oo"]
 --   multiApp concat [take 3, reverse] "race" ==> "racecar"
 
-pipe :: a -> (a -> b) -> b
-pipe x f = f x
-
 multiApp :: ([b] -> c) -> [a -> b] -> a -> c
-multiApp f gs x = f $ fmap (pipe x) gs
+multiApp f gs x = f $ fmap ($ x) gs
 
 ------------------------------------------------------------------------------
 -- Ex 14: in this exercise you get to implement an interpreter for a
@@ -306,14 +291,14 @@ multiApp f gs x = f $ fmap (pipe x) gs
 -- using (:). If you build the list in an argument to a helper
 -- function, the surprise won't work.
 
-interpreter' :: [String] -> (Int, Int) -> [String]
-interpreter' [] coords = []
-interpreter' ("up" : cmds) (x, y) = interpreter' cmds (x, y + 1)
-interpreter' ("down" : cmds) (x, y) = interpreter' cmds (x, y - 1)
-interpreter' ("left" : cmds) (x, y) = interpreter' cmds (x - 1, y)
-interpreter' ("right" : cmds) (x, y) = interpreter' cmds (x + 1, y)
-interpreter' ("printX" : cmds) (x, y) = (show x) : interpreter' cmds (x, y)
-interpreter' ("printY" : cmds) (x, y) = (show y) : interpreter' cmds (x, y)
-
 interpreter :: [String] -> [String]
-interpreter commands = interpreter' commands (0, 0)
+interpreter commands = go 0 0 commands
+  where
+    go x y ("up" : commands) = go x (y + 1) commands
+    go x y ("down" : commands) = go x (y -1) commands
+    go x y ("left" : commands) = go (x -1) y commands
+    go x y ("right" : commands) = go (x + 1) y commands
+    go x y ("printX" : commands) = show x : go x y commands
+    go x y ("printY" : commands) = show y : go x y commands
+    go x y [] = []
+    go x y (_ : commands) = "BAD" : go x y commands
