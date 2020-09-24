@@ -201,7 +201,7 @@ map2 f (x : xs) (y : ys) = f x y : map2 f xs ys
 
 maybeMap :: (a -> Maybe b) -> [a] -> [b]
 maybeMap f [] = []
-maybeMap f (x : xs) = go (f x)
-  where
-    go (Just b) = b : maybeMap f xs
-    go Nothing = maybeMap f xs
+maybeMap f (x : xs) =
+  case f x of
+    Just b -> b : maybeMap f xs
+    Nothing -> maybeMap f xs
