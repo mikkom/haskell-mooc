@@ -36,8 +36,7 @@ import Data.Array
 
 allEqual :: Eq a => [a] -> Bool
 allEqual [] = True
-allEqual [x] = True
-allEqual (x : y : xs) = x == y && allEqual (y : xs)
+allEqual (x : xs) = all (== x) xs
 
 ------------------------------------------------------------------------------
 -- Ex 2: implement the function distinct which returns True if all
@@ -52,11 +51,7 @@ allEqual (x : y : xs) = x == y && allEqual (y : xs)
 --   distinct [1,2] ==> True
 
 distinct :: Eq a => [a] -> Bool
-distinct [] = True
-distinct (x : xs) = distinctFrom x xs && distinct xs
-  where
-    distinctFrom x [] = True
-    distinctFrom x (y : ys) = x /= y && distinctFrom x ys
+distinct xs = nub xs == xs
 
 ------------------------------------------------------------------------------
 -- Ex 3: implement the function middle that returns the middle value
@@ -105,16 +100,7 @@ rangeOf xs = maximum xs - minimum xs
 
 
 longest :: Ord a => [[a]] -> [a]
-longest = maximumBy ord
-  where ord x y
-          | lx < ly = LT
-          | lx > ly = GT
-          | lx == 0 = GT
-          | x !! 0 < y !! 0 = GT
-          | otherwise = LT
-          where lx = length x
-                ly = length y
-
+longest = maximumBy $ (comparing length) <> (flip $ comparing head)
 
 ------------------------------------------------------------------------------
 -- Ex 6: Implement the function incrementKey, that takes a list of
@@ -131,7 +117,10 @@ longest = maximumBy ord
 --   incrementKey 'a' [('a',3.4)] ==> [('a',4.4)]
 
 incrementKey :: Eq k => Num v => k -> [(k,v)] -> [(k,v)]
-incrementKey x = fmap (\(k, v) -> if k == x then (k, v + 1) else (k, v))
+incrementKey k = fmap incr
+  where incr (k', v)
+         | k == k' = (k', v + 1)
+         | otherwise = (k', v)
 
 ------------------------------------------------------------------------------
 -- Ex 7: compute the average of a list of values of the Fractional
@@ -164,9 +153,10 @@ average xs = sum xs / fromIntegral (length xs)
 --     ==> "Bob"
 
 winner :: Map.Map String Int -> String -> String -> String
-winner scores player1 player2 =
-  if (score player1 >= score player2) then player1 else player2
-    where score player = Map.findWithDefault 0 player scores
+winner scores player1 player2
+  | score player1 >= score player2 = player1
+  | otherwise = player2
+  where score player = Map.findWithDefault 0 player scores
 
 ------------------------------------------------------------------------------
 -- Ex 9: compute how many times each value in the list occurs. Return
@@ -181,9 +171,8 @@ winner scores player1 player2 =
 --     ==> Map.fromList [(False,3),(True,1)]
 
 freqs :: (Eq a, Ord a) => [a] -> Map.Map a Int
-freqs xs = foldr (\k acc -> Map.alter update k acc) Map.empty xs
-  where update (Just n) = Just (n + 1)
-        update Nothing  = Just 1
+freqs xs = foldr (Map.alter update) Map.empty xs
+  where update = Just . maybe 1 (+ 1)
 
 ------------------------------------------------------------------------------
 -- Ex 10: recall the withdraw example from the course material. Write a
@@ -213,14 +202,10 @@ freqs xs = foldr (\k acc -> Map.alter update k acc) Map.empty xs
 -- foo xs = Map.fin
 
 transfer :: String -> String -> Int -> Map.Map String Int -> Map.Map String Int
-transfer from to amount bank
-  | amount <= 0 = bank
-  | fromBalance < amount = bank
-  | Map.notMember to bank = bank
-  | otherwise = 
-    Map.insert from (fromBalance - amount) .
-    Map.update (\toBalance -> Just (toBalance + amount)) to $ bank
-  where fromBalance = Map.findWithDefault 0 from bank
+transfer from to amount bank = case (Map.lookup from bank, Map.lookup to bank) of
+  (Just fromBalance, Just toBalance) | amount >= 0 && fromBalance >= amount ->
+    Map.adjust (+ amount) to . Map.adjust (\b -> b - amount) from $ bank
+  _ -> bank
 
 ------------------------------------------------------------------------------
 -- Ex 11: given an Array and two indices, swap the elements in the indices.
@@ -241,4 +226,4 @@ swap i j arr = arr // [(i, arr ! j), (j, arr ! i)]
 -- Hint: check out Data.Array.indices or Data.Array.assocs
 
 maxIndex :: (Ix i, Ord a) => Array i a -> i
-maxIndex arr = fst $ maximumBy (comparing snd) (Data.Array.assocs arr)
+maxIndex arr = fst $ maximumBy (comparing snd) (assocs arr)
