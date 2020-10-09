@@ -27,15 +27,10 @@ instance Eq Country where
 -- Remember minimal complete definitions!
 
 instance Ord Country where
-  compare Finland Finland = EQ
-  compare Finland Norway = LT
-  compare Finland Switzerland = LT
-  compare Norway Finland = GT
-  compare Norway Norway = EQ
-  compare Norway Switzerland = LT
-  compare Switzerland Finland = GT
-  compare Switzerland Norway = GT
-  compare Switzerland Switzerland = EQ
+  Finland <= Norway = True
+  Finland <= Switzerland = True
+  Norway <= Switzerland = True
+  x <= y = x == y
 
 ------------------------------------------------------------------------------
 -- Ex 3: Implement an Eq instance for the type Name which contains a String.
