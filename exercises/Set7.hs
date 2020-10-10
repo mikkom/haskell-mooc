@@ -53,13 +53,17 @@ emptySet = Set []
 
 -- member tests if an element is in a set
 member :: Eq a => a -> Set a -> Bool
-member x (Set xs) = any (== x) xs
+member x (Set xs) = elem x xs
 
 -- add a member to a set
 add :: Ord a => a -> Set a -> Set a
-add x s@(Set xs)
-  | member x s = s
-  | otherwise = Set $ sort (x : xs)
+add x (Set xs) = Set (go x xs)
+  where
+    go x [] = [x]
+    go x (y : ys)
+      | x == y = (y : ys)
+      | x < y = x : y : ys
+      | x > y = y : go x ys
 
 ------------------------------------------------------------------------------
 -- Ex 3: a state machine for baking a cake. The type Event represents
@@ -130,9 +134,9 @@ average (x :| xs) = (x + sum xs) / fromIntegral (1 + length xs)
 -- Ex 5: reverse a NonEmpty list.
 
 reverseNonEmpty :: NonEmpty a -> NonEmpty a
-reverseNonEmpty l@(x :| []) = l
-reverseNonEmpty (x :| xs) = y :| (ys ++ [x])
-  where (y : ys) = reverse xs
+reverseNonEmpty (x :| xs) = case reverse xs of
+  [] -> x :| []
+  y : ys -> y :| (ys ++ [x])
 
 ------------------------------------------------------------------------------
 -- Ex 6: implement Semigroup instances for the Distance, Time and
@@ -162,8 +166,7 @@ instance Semigroup Velocity where
 -- What are the class constraints for the instances?
 
 instance Ord a => Semigroup (Set a) where
-  s1 <> Set [] = s1
-  s1 <> Set (x : xs) = add x s1 <> Set xs
+  s1 <> Set xs = foldr add s1 xs
 
 instance Ord a => Monoid (Set a) where
   mempty = emptySet
