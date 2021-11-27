@@ -102,22 +102,14 @@ nextCol (i, j) = (i, j + 1)
 -- with the O-notation.)
 
 prettyPrint :: Size -> [Coord] -> String
-prettyPrint n qs = go (1, 1) (sort qs) ""
-  where
-    printSquare (q : qs) c
-      | q == c = ("Q", qs)
-    printSquare qs _ = (".", qs)
-
-    nextCoord c@(i, j)
-      | j == n = ("\n", nextRow c)
-      | otherwise = ("", nextCol c)
-
-    go c@(i, j) qs acc
-      | i > n = acc
-      | otherwise =
-        let (s1, qs') = printSquare qs c
-            (s2, c') = nextCoord c
-         in go c' qs' (acc ++ s1 ++ s2)
+prettyPrint n qs =
+  let helper (i, j) ((r, c) : qs)
+        | i == r && j == c = 'Q' : helper (nextCol (i, j)) qs
+      helper (i, j) qs
+        | i > n = ""
+        | j > n = '\n' : helper (nextRow (i, j)) qs
+        | otherwise = '.' : helper (nextCol (i, j)) qs
+   in helper (1, 1) (sort qs)
 
 --------------------------------------------------------------------------------
 -- Ex 3: The task in this exercise is to define the relations sameRow, sameCol,
@@ -208,9 +200,9 @@ type Candidate = Coord
 type Stack = [Coord]
 
 danger :: Candidate -> Stack -> Bool
-danger c = any threatens
+danger c qs = or [r c q | r <- relations, q <- qs]
   where
-    threatens q = any (\f -> f q c) [sameRow, sameCol, sameDiag, sameAntidiag]
+    relations = [sameRow, sameCol, sameDiag, sameAntidiag]
 
 --------------------------------------------------------------------------------
 -- Ex 5: In this exercise, the task is to write a modified version of
@@ -245,23 +237,14 @@ danger c = any threatens
 -- solution to this version. Any working solution is okay in this exercise.)
 
 prettyPrint2 :: Size -> Stack -> String
-prettyPrint2 n qs = go (1, 1) ""
-  where
-    printSquare c
-      | c `elem` qs = "Q"
-      | danger c qs = "#"
-      | otherwise = "."
-
-    nextCoord c@(i, j)
-      | j == n = ("\n", nextRow c)
-      | otherwise = ("", nextCol c)
-
-    go c@(i, j) acc
-      | i > n = acc
-      | otherwise =
-        let s1 = printSquare c
-            (s2, c') = nextCoord c
-         in go c' (acc ++ s1 ++ s2)
+prettyPrint2 n qs =
+  let helper (i, j) qs
+        | i > n = ""
+        | j > n = '\n' : helper (nextRow (i, j)) qs
+        | (i, j) `elem` qs = 'Q' : helper (nextCol (i, j)) qs
+        | danger (i, j) qs = '#' : helper (nextCol (i, j)) qs
+        | otherwise = '.' : helper (nextCol (i, j)) qs
+   in helper (1, 1) (sort qs)
 
 --------------------------------------------------------------------------------
 -- Ex 6: Now that we can check if a piece can be safely placed into a square in
@@ -307,10 +290,10 @@ prettyPrint2 n qs = go (1, 1) ""
 
 fixFirst :: Size -> Stack -> Maybe Stack
 fixFirst _ [] = Just []
-fixFirst n (q@(i, j) : qs)
-  | snd q > n = Nothing
-  | danger q qs = fixFirst n ((i, j + 1) : qs)
-  | otherwise = Just (q : qs)
+fixFirst n ((i, j) : qs)
+  | j > n = Nothing
+  | danger (i, j) qs = fixFirst n ((i, j + 1) : qs)
+  | otherwise = Just ((i, j) : qs)
 
 --------------------------------------------------------------------------------
 -- Ex 7: We need two helper functions for stack management.
@@ -336,8 +319,8 @@ fixFirst n (q@(i, j) : qs)
 -- Hint: Remember nextRow and nextCol? Use them!
 
 continue :: Stack -> Stack
-continue [] = [(1, 1)]
 continue (x : xs) = nextRow x : x : xs
+continue _ = []
 
 backtrack :: Stack -> Stack
 backtrack (_ : x : xs) = nextCol x : xs
