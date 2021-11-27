@@ -71,11 +71,10 @@ countValid ss = length $ filter isValid ss
 --   repeated [1,2,1,2,3,3] ==> Just 3
 
 repeated :: Eq a => [a] -> Maybe a
-repeated [] = Nothing
-repeated [_] = Nothing
 repeated (x : y : xs)
   | x == y = Just x
   | otherwise = repeated (y : xs)
+repeated _ = Nothing
 
 ------------------------------------------------------------------------------
 -- Ex 5: A laboratory has been collecting measurements. Some of the
@@ -97,13 +96,11 @@ repeated (x : y : xs)
 --     ==> Left "no data"
 
 sumSuccess :: [Either String Int] -> Either String Int
-sumSuccess = foldr combineMeasurements (Left "no data")
-
-combineMeasurements :: Num b => Either a b -> Either a b -> Either a b
-combineMeasurements (Left _) (Left x) = Left x
-combineMeasurements (Left _) (Right x) = Right x
-combineMeasurements (Right x) (Left _) = Right x
-combineMeasurements (Right x) (Right y) = Right (x + y)
+sumSuccess es =
+  let successes = [x | Right x <- es]
+   in case successes of
+        [] -> Left "no data"
+        xs -> Right (sum xs)
 
 ------------------------------------------------------------------------------
 -- Ex 6: A combination lock can either be open or closed. The lock
@@ -142,7 +139,6 @@ isOpen _ = False
 open :: String -> Lock -> Lock
 open c (Closed code)
   | c == code = Open code
-  | otherwise = Closed code
 open _ lock = lock
 
 -- lock closes a lock. If the lock is already closed, nothing happens.
@@ -175,8 +171,7 @@ data Text = Text String
 instance Eq Text where
   (==) (Text s1) (Text s2) = trim s1 == trim s2
     where
-      trim :: String -> String
-      trim s = filter (\c -> c `notElem` [' ', '\n']) s
+      trim s = filter (not . isSpace) s
 
 ------------------------------------------------------------------------------
 -- Ex 8: We can represent functions or mappings as lists of pairs.
@@ -210,10 +205,11 @@ instance Eq Text where
 --       ==> [("a",1),("b",2)]
 
 compose :: (Eq a, Eq b) => [(a, b)] -> [(b, c)] -> [(a, c)]
-compose [] _ = []
-compose ((a, b) : xs) ys = case lookup b ys of
-  Just c -> (a, c) : compose xs ys
-  _ -> compose xs ys
+compose ab bc = concatMap apply ab
+  where
+    apply (a, b) = case lookup b bc of
+      Just c -> [(a, c)]
+      Nothing -> []
 
 ------------------------------------------------------------------------------
 -- Ex 9: Reorder a list using a list of indices.
@@ -257,6 +253,4 @@ multiply :: Permutation -> Permutation -> Permutation
 multiply p q = map (\i -> p !! (q !! i)) (identity (length p))
 
 permute :: Permutation -> [a] -> [a]
-permute p xs = map f $ sort (zip p [0 ..])
-  where
-    f (_, i) = xs !! i
+permute p = map snd . sortBy (comparing fst) . zip p
