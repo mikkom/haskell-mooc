@@ -37,8 +37,7 @@ doublify (x : xs) = x : x : doublify xs
 --   take 10 (interleave [1..] (repeat 0)) ==> [1,0,2,0,3,0,4,0,5,0]
 
 interleave :: [a] -> [a] -> [a]
-interleave (x : xs) (y : ys) = x : y : interleave xs ys
-interleave xs [] = xs
+interleave (x : xs) ys = x : interleave ys xs
 interleave [] ys = ys
 
 ------------------------------------------------------------------------------
@@ -98,7 +97,7 @@ averages = go (0, 0)
 --   take 10 (alternate [1,2] [3,4,5] 0) ==> [1,2,0,3,4,5,0,1,2,0]
 
 alternate :: [a] -> [a] -> a -> [a]
-alternate xs ys z = xs ++ z : ys ++ z : alternate xs ys z
+alternate xs ys z = xs ++ z : alternate ys xs z
 
 ------------------------------------------------------------------------------
 -- Ex 6: Check if the length of a list is at least n. Make sure your
