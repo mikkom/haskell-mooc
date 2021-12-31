@@ -52,10 +52,7 @@ boolLength (True : xs) = 1 + boolLength xs
 --   validate (\x -> undefined) 3  ==>  an error!
 
 validate :: (a -> Bool) -> a -> a
-validate predicate value = go (predicate value)
-  where
-    go False = value
-    go True = value
+validate predicate value = if predicate value then value else value
 
 ------------------------------------------------------------------------------
 -- Ex 4: Even though we can't implement the generic seq function
