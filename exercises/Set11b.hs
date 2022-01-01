@@ -18,7 +18,9 @@ import System.IO
 --   "xfoobarquux"
 
 appendAll :: IORef String -> [String] -> IO ()
-appendAll ref = mapM_ (\x -> modifyIORef ref (++ x))
+appendAll ref = mapM_ app
+  where
+    app x = modifyIORef ref (++ x)
 
 ------------------------------------------------------------------------------
 -- Ex 2: Given two IORefs, swap the values stored in them.
@@ -142,13 +144,12 @@ hFetchLines h = do
 hSelectLines :: Handle -> [Int] -> IO [String]
 hSelectLines h nums = do
   lines <- hFetchLines h
-  pure $ go 1 nums lines
+  pure $ pick nums lines
+
+pick :: [Int] -> [a] -> [a]
+pick nums = map snd . filter include . zip [1 ..]
   where
-    go n [] lines = []
-    go n nums [] = []
-    go n (x : xs) (line : lines)
-      | n == x = line : go (n + 1) xs lines
-      | otherwise = go (n + 1) (x : xs) lines
+    include (i, _) = i `elem` nums
 
 ------------------------------------------------------------------------------
 -- Ex 7: In this exercise we see how a program can be split into a
