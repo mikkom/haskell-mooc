@@ -88,7 +88,7 @@ readUntil f = do
 -- Ex 6: given n, print the numbers from n to 0, one per line
 
 countdownPrint :: Int -> IO ()
-countdownPrint n = mapM_ print $ reverse [0 .. n]
+countdownPrint n = mapM_ print [n, n - 1 .. 0]
 
 ------------------------------------------------------------------------------
 -- Ex 7: isums n should read n numbers from the user (one per line) and
@@ -107,8 +107,8 @@ isums = go 0
   where
     go acc 0 = pure acc
     go acc n = do
-      input <- getLine
-      let acc' = read input + acc
+      i <- readLn
+      let acc' = acc + i
       print acc'
       go acc' (n - 1)
 
@@ -120,7 +120,7 @@ isums = go 0
 whenM :: IO Bool -> IO () -> IO ()
 whenM cond op = do
   b <- cond
-  if b then op else pure ()
+  when b op
 
 ------------------------------------------------------------------------------
 -- Ex 9: implement the while loop. while condition operation should
