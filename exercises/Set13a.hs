@@ -118,11 +118,7 @@ winner scores player1 player2 =
 --    Nothing
 
 selectSum :: Num a => [a] -> [Int] -> Maybe a
-selectSum xs [] = Just 0
-selectSum xs (i : is) = do
-  x <- safeIndex xs i
-  y <- selectSum xs is
-  pure (x + y)
+selectSum xs = fmap sum . mapM (safeIndex xs)
 
 safeIndex :: [a] -> Int -> Maybe a
 safeIndex [] _ = Nothing
@@ -164,7 +160,7 @@ instance Applicative Logger where
 countAndLog :: Show a => (a -> Bool) -> [a] -> Logger Int
 countAndLog pred [] = pure 0
 countAndLog pred (x : xs)
-  | pred x = fmap (+ 1) $ msg (show x) >> countAndLog pred xs
+  | pred x = fmap succ $ msg (show x) >> countAndLog pred xs
   | otherwise = countAndLog pred xs
 
 ------------------------------------------------------------------------------
@@ -214,7 +210,11 @@ rob from to = balance from +> withdrawOp from +> depositOp to
 --    ==> ((),7)
 
 update :: State Int ()
-update = StateT (\s -> Identity ((), 2 * s + 1))
+update = do
+  s <- get
+  put (2 * s)
+  s' <- get
+  put (s' + 1)
 
 ------------------------------------------------------------------------------
 -- Ex 8: Checking that parentheses are balanced with the State monad.
@@ -242,13 +242,12 @@ update = StateT (\s -> Identity ((), 2 * s + 1))
 --   parensMatch "(()))("      ==> False
 
 paren :: Char -> State Int ()
-paren ch = StateT (\s -> Identity ((), update s))
+paren ch = modify (go ch)
   where
-    update (-1) = -1
-    update s = case ch of
-      '(' -> succ s
-      ')' -> pred s
-      _ -> s
+    go _ (-1) = -1
+    go '(' s = succ s
+    go ')' s = pred s
+    go _ s = s
 
 parensMatch :: String -> Bool
 parensMatch s = count == 0
@@ -280,11 +279,12 @@ parensMatch s = count == 0
 -- PS. The order of the list of pairs doesn't matter
 
 count :: Eq a => a -> State [(a, Int)] ()
-count x = StateT (\s -> Identity ((), update s))
+count x = modify (inc x)
   where
-    update s = case lookup x s of
-      Just n -> (x, n + 1) : filter (/= (x, n)) s
-      Nothing -> (x, 1) : s
+    inc x [] = [(x, 1)]
+    inc x ((y, n) : ys)
+      | x == y = (y, n + 1) : ys
+      | otherwise = (y, n) : inc x ys
 
 ------------------------------------------------------------------------------
 -- Ex 10: Implement the operation occurrences, which
@@ -306,4 +306,4 @@ count x = StateT (\s -> Identity ((), update s))
 --    ==> (4,[(2,1),(3,1),(4,1),(7,1)])
 
 occurrences :: (Eq a) => [a] -> State [(a, Int)] Int
-occurrences = foldr ((>>) . count) (length <$> get)
+occurrences xs = mapM_ count xs >> length <$> get
