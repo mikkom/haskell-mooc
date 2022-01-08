@@ -1,15 +1,13 @@
 module Set13a where
 
-import Mooc.Todo
-
 import Control.Monad
 import Control.Monad.Trans.State
 import Data.Char
+import Data.Functor.Identity (Identity (Identity))
 import Data.List
 import qualified Data.Map as Map
-
 import Examples.Bank
-
+import Mooc.Todo
 
 ------------------------------------------------------------------------------
 -- Ex 1: Your task is to help implement the function readName that
@@ -27,37 +25,52 @@ import Examples.Bank
 -- works correctly.
 
 (?>) :: Maybe a -> (a -> Maybe b) -> Maybe b
-Nothing ?> _ = Nothing   -- In case of failure, propagate failure
-Just x  ?> f = f x       -- In case of sucess, run the next computation
+Nothing ?> _ = Nothing -- In case of failure, propagate failure
+Just x ?> f = f x -- In case of sucess, run the next computation
 
 -- DO NOT touch this definition!
-readNames :: String -> Maybe (String,String)
+readNames :: String -> Maybe (String, String)
 readNames s =
   split s
-  ?>
-  checkNumber
-  ?>
-  checkCapitals
+    ?> checkNumber
+    ?> checkCapitals
 
 -- split should split a string into two words. If the input doesn't
 -- contain a space, Nothing should be returned
 --
 -- (NB! There are obviously other corner cases like the inputs " " and
 -- "a b c", but you don't need to worry about those here)
-split :: String -> Maybe (String,String)
-split = todo
+split :: String -> Maybe (String, String)
+split xs = do
+  i <- elemIndex ' ' xs
+  pure (take i xs, drop (i + 1) xs)
 
 -- checkNumber should take a pair of two strings and return them
 -- unchanged if they don't contain numbers. Otherwise Nothing is
 -- returned.
 checkNumber :: (String, String) -> Maybe (String, String)
-checkNumber = todo
+checkNumber (xs, ys) = do
+  xs' <- check xs
+  ys' <- check ys
+  pure (xs', ys')
+  where
+    check = ensure (all isAlpha)
 
 -- checkCapitals should take a pair of two strings and return them
 -- unchanged if both start with a capital letter. Otherwise Nothing is
 -- returned.
 checkCapitals :: (String, String) -> Maybe (String, String)
-checkCapitals (for,sur) = todo
+checkCapitals (for, sur) = do
+  f <- check for
+  s <- check sur
+  pure (f, s)
+  where
+    check = ensure (not . null) >=> ensure (isUpper . head)
+
+ensure :: (a -> Bool) -> a -> Maybe a
+ensure pred x
+  | pred x = Just x
+  | otherwise = Nothing
 
 ------------------------------------------------------------------------------
 -- Ex 2: Given a list of players and their scores (as [(String,Int)]),
@@ -83,8 +96,11 @@ checkCapitals (for,sur) = todo
 --   winner [("a",1),("b",1)] "a" "b"
 --     ==> Just "a"
 
-winner :: [(String,Int)] -> String -> String -> Maybe String
-winner scores player1 player2 = todo
+winner :: [(String, Int)] -> String -> String -> Maybe String
+winner scores player1 player2 =
+  lookup player1 scores ?> \score1 ->
+    lookup player2 scores ?> \score2 ->
+      pure $ if score1 >= score2 then player1 else player2
 
 ------------------------------------------------------------------------------
 -- Ex 3: given a list of indices and a list of values, return the sum
@@ -102,7 +118,16 @@ winner scores player1 player2 = todo
 --    Nothing
 
 selectSum :: Num a => [a] -> [Int] -> Maybe a
-selectSum xs is = todo
+selectSum xs [] = Just 0
+selectSum xs (i : is) = do
+  x <- safeIndex xs i
+  y <- selectSum xs is
+  pure (x + y)
+
+safeIndex :: [a] -> Int -> Maybe a
+safeIndex [] _ = Nothing
+safeIndex (x : xs) 0 = Just x
+safeIndex (x : xs) n = safeIndex xs (n - 1)
 
 ------------------------------------------------------------------------------
 -- Ex 4: Here is the Logger monad from the course material. Implement
@@ -126,8 +151,9 @@ instance Functor Logger where
 
 instance Monad Logger where
   return x = Logger [] x
-  Logger la a >>= f = Logger (la++lb) b
-    where Logger lb b = f a
+  Logger la a >>= f = Logger (la ++ lb) b
+    where
+      Logger lb b = f a
 
 -- This is an Applicative instance that works for any monad, you
 -- can just ignore it for now. We'll get back to Applicative later.
@@ -136,7 +162,10 @@ instance Applicative Logger where
   (<*>) = ap
 
 countAndLog :: Show a => (a -> Bool) -> [a] -> Logger Int
-countAndLog = todo
+countAndLog pred [] = pure 0
+countAndLog pred (x : xs)
+  | pred x = fmap (+ 1) $ msg (show x) >> countAndLog pred xs
+  | otherwise = countAndLog pred xs
 
 ------------------------------------------------------------------------------
 -- Ex 5: You can find the Bank and BankOp code from the course
@@ -150,10 +179,12 @@ countAndLog = todo
 -- from Data.Map are available under the prefix Map.
 
 exampleBank :: Bank
-exampleBank = (Bank (Map.fromList [("harry",10),("cedric",7),("ginny",1)]))
+exampleBank = Bank (Map.fromList [("harry", 10), ("cedric", 7), ("ginny", 1)])
 
 balance :: String -> BankOp Int
-balance accountName = todo
+balance accountName = BankOp (\bank -> (getBalance bank, bank))
+  where
+    getBalance (Bank bank) = Map.findWithDefault 0 accountName bank
 
 ------------------------------------------------------------------------------
 -- Ex 6: Using the operations balance, withdrawOp and depositOp, and
@@ -171,7 +202,7 @@ balance accountName = todo
 --     ==> ((),Bank (fromList [("cedric",7),("ginny",1),("harry",10)]))
 
 rob :: String -> String -> BankOp ()
-rob from to = todo
+rob from to = balance from +> withdrawOp from +> depositOp to
 
 ------------------------------------------------------------------------------
 -- Ex 7: using the State monad, write the operation `update` that first
@@ -183,7 +214,7 @@ rob from to = todo
 --    ==> ((),7)
 
 update :: State Int ()
-update = todo
+update = StateT (\s -> Identity ((), 2 * s + 1))
 
 ------------------------------------------------------------------------------
 -- Ex 8: Checking that parentheses are balanced with the State monad.
@@ -211,11 +242,18 @@ update = todo
 --   parensMatch "(()))("      ==> False
 
 paren :: Char -> State Int ()
-paren = todo
+paren ch = StateT (\s -> Identity ((), update s))
+  where
+    update (-1) = -1
+    update s = case ch of
+      '(' -> succ s
+      ')' -> pred s
+      _ -> s
 
 parensMatch :: String -> Bool
 parensMatch s = count == 0
-  where (_,count) = runState (mapM_ paren s) 0
+  where
+    (_, count) = runState (mapM_ paren s) 0
 
 ------------------------------------------------------------------------------
 -- Ex 9: using a state of type [(a,Int)] we can keep track of the
@@ -241,8 +279,12 @@ parensMatch s = count == 0
 --
 -- PS. The order of the list of pairs doesn't matter
 
-count :: Eq a => a -> State [(a,Int)] ()
-count x = todo
+count :: Eq a => a -> State [(a, Int)] ()
+count x = StateT (\s -> Identity ((), update s))
+  where
+    update s = case lookup x s of
+      Just n -> (x, n + 1) : filter (/= (x, n)) s
+      Nothing -> (x, 1) : s
 
 ------------------------------------------------------------------------------
 -- Ex 10: Implement the operation occurrences, which
@@ -263,5 +305,5 @@ count x = todo
 --  runState (occurrences [4,7]) [(2,1),(3,1)]
 --    ==> (4,[(2,1),(3,1),(4,1),(7,1)])
 
-occurrences :: (Eq a) => [a] -> State [(a,Int)] Int
-occurrences xs = todo
+occurrences :: (Eq a) => [a] -> State [(a, Int)] Int
+occurrences = foldr ((>>) . count) (length <$> get)
