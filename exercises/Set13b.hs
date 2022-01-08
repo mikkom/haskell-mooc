@@ -154,7 +154,7 @@ visit maze place = do
   unless
     (place `elem` visited)
     $ do
-      put (place : visited)
+      modify (place :)
       mapM_ (visit maze) $ fromMaybe [] $ lookup place maze
 
 -- Now you should be able to implement path using visit. If you run
@@ -235,9 +235,9 @@ sumBounded :: Int -> [Int] -> Maybe Int
 sumBounded k = foldM (f1 k) 0
 
 f1 :: Int -> Int -> Int -> Maybe Int
-f1 k acc x = if sum > k then Nothing else Just sum
-  where
-    sum = x + acc
+f1 k acc x
+  | x + acc > k = Nothing
+  | otherwise = Just (x + acc)
 
 -- sumNotTwice computes the sum of a list, but counts only the first
 -- occurrence of each value.
@@ -255,9 +255,7 @@ f2 acc x = do
   s <- get
   if x `elem` s
     then pure acc
-    else do
-      put (x : s)
-      pure (x + acc)
+    else modify (x :) >> pure (x + acc)
 
 ------------------------------------------------------------------------------
 -- Ex 7: here is the Result type from Set12. Implement a Monad Result
@@ -358,12 +356,13 @@ instance Applicative SL where
 instance Monad SL where
   -- implement return and >>=
   return x = SL (x,,[])
-  (SL f) >>= g = SL (go . f)
+  op >>= f = SL g
     where
-      go (x, s, l) = go' (g x)
-        where
-          go' (SL h) = go'' (h s)
-          go'' (x', s', l') = (x', s', l ++ l')
+      g state0 =
+        let (x, s, l) = runSL op state0
+            op2 = f x
+            (x', s', l') = runSL op2 s
+         in (x', s', l ++ l')
 
 ------------------------------------------------------------------------------
 -- Ex 9: Implement the operation mkCounter that produces the IO operations
