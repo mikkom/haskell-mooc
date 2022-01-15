@@ -13,7 +13,7 @@ addQuery :: Query
 addQuery = Query (T.pack "INSERT INTO phonebook (name, phone) VALUES (?, ?);")
 
 addToPhonebook :: Connection -> String -> String -> IO ()
-addToPhonebook db name phone = execute db addQuery (name,phone)
+addToPhonebook db name phone = execute db addQuery (name, phone)
 
 -- A query for getting all numbers associated with a given name from the database.
 getQuery :: Query
@@ -33,7 +33,7 @@ addMode :: Connection -> IO ()
 addMode db = do
   putStrLn "Name?"
   name <- getLine
-  when (not (null name)) $ do
+  unless (null name) $ do
     putStrLn "Phone?"
     phone <- getLine
     addToPhonebook db name phone
@@ -42,7 +42,7 @@ queryMode :: Connection -> IO ()
 queryMode db = do
   putStrLn "Name?"
   name <- getLine
-  when (not (null name)) $ do
+  unless (null name) $ do
     numbers <- getNumbersFor db name
     putStrLn (show (length numbers) ++ " numbers:")
     mapM_ print numbers
@@ -52,6 +52,7 @@ main = do
   db <- openDatabase
   putStrLn "(a)dd or (q)uery?"
   choice <- getLine
-  case choice of "a" -> addMode db
-                 "q" -> queryMode db
-                 _ -> return ()
+  case choice of
+    "a" -> addMode db
+    "q" -> queryMode db
+    _ -> return ()

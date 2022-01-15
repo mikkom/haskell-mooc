@@ -3,17 +3,16 @@ module Set14a where
 -- Remember to browse the docs of the Data.Text and Data.ByteString
 -- libraries while working on the exercises!
 
-import Mooc.Todo
-
 import Data.Bits
-import Data.Char
-import Data.Text.Encoding
-import Data.Word
-import Data.Int
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as TL
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
+import Data.Char
+import Data.Int
+import qualified Data.Text as T
+import Data.Text.Encoding
+import qualified Data.Text.Lazy as TL
+import Data.Word
+import Mooc.Todo
 
 ------------------------------------------------------------------------------
 -- Ex 1: Greet a person. Given the name of a person as a Text, return
@@ -28,7 +27,11 @@ import qualified Data.ByteString.Lazy as BL
 --  greetText (T.pack "Benedict Cumberbatch") ==> "Hello, Benedict Cumber...!"
 
 greetText :: T.Text -> T.Text
-greetText = todo
+greetText name = T.concat [T.pack "Hello, ", getName name, T.pack "!"]
+  where
+    getName name
+      | T.length name > 15 = T.append (T.take 15 name) (T.pack "...")
+      | otherwise = name
 
 ------------------------------------------------------------------------------
 -- Ex 2: Capitalize every second word of a Text.
@@ -40,7 +43,11 @@ greetText = todo
 --     ==> "WORD"
 
 shout :: T.Text -> T.Text
-shout = todo
+shout = T.unwords . everyOther (T.map toUpper) True . T.words
+  where
+    everyOther f _ [] = []
+    everyOther f True (w : ws) = f w : everyOther f False ws
+    everyOther f False (w : ws) = w : everyOther f True ws
 
 ------------------------------------------------------------------------------
 -- Ex 3: Find the longest sequence of a single character repeating in
@@ -51,7 +58,12 @@ shout = todo
 --   longestRepeat (T.pack "aabbbbccc") ==> 4
 
 longestRepeat :: T.Text -> Int
-longestRepeat = todo
+longestRepeat = go 0 . T.uncons
+  where
+    go len Nothing = len
+    go len (Just (x, xs)) =
+      let len' = T.length $ T.takeWhile (== x) xs
+       in go (max len (len' + 1)) (T.uncons (T.drop len' xs))
 
 ------------------------------------------------------------------------------
 -- Ex 4: Given a lazy (potentially infinite) Text, extract the first n
@@ -64,7 +76,7 @@ longestRepeat = todo
 --   takeStrict 15 (TL.pack (cycle "asdf"))  ==>  "asdfasdfasdfasd"
 
 takeStrict :: Int64 -> TL.Text -> T.Text
-takeStrict = todo
+takeStrict n = TL.toStrict . TL.take n
 
 ------------------------------------------------------------------------------
 -- Ex 5: Find the difference between the largest and smallest byte
@@ -76,7 +88,12 @@ takeStrict = todo
 --   byteRange (B.pack [3]) ==> 0
 
 byteRange :: B.ByteString -> Word8
-byteRange = todo
+byteRange bytes = case B.uncons bytes of
+  Nothing -> 0
+  Just (x, xs) -> go x x (B.uncons xs)
+  where
+    go lo hi Nothing = hi - lo
+    go lo hi (Just (x, xs)) = go (min x lo) (max x hi) $ B.uncons xs
 
 ------------------------------------------------------------------------------
 -- Ex 6: Compute the XOR checksum of a ByteString. The XOR checksum of
@@ -97,7 +114,7 @@ byteRange = todo
 --   xorChecksum (B.pack []) ==> 0
 
 xorChecksum :: B.ByteString -> Word8
-xorChecksum = todo
+xorChecksum = B.foldl' xor 0
 
 ------------------------------------------------------------------------------
 -- Ex 7: Given a ByteString, compute how many UTF-8 characters it
@@ -114,7 +131,10 @@ xorChecksum = todo
 --   countUtf8Chars (B.drop 1 (encodeUtf8 (T.pack "åäö"))) ==> Nothing
 
 countUtf8Chars :: B.ByteString -> Maybe Int
-countUtf8Chars = todo
+countUtf8Chars = toMaybe . fmap T.length . decodeUtf8'
+  where
+    toMaybe (Right x) = Just x
+    toMaybe _ = Nothing
 
 ------------------------------------------------------------------------------
 -- Ex 8: Given a (nonempty) strict ByteString b, generate an infinite
@@ -126,5 +146,4 @@ countUtf8Chars = todo
 --     ==> [0,1,2,2,1,0,0,1,2,2,1,0,0,1,2,2,1,0,0,1]
 
 pingpong :: B.ByteString -> BL.ByteString
-pingpong = todo
-
+pingpong x = BL.append (BL.fromStrict x) (pingpong $ B.reverse x)

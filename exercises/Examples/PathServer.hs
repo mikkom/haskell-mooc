@@ -4,7 +4,7 @@ import qualified Data.ByteString.Lazy as B
 import qualified Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
 import Network.HTTP.Types.Status (Status, status200, status404)
-import Network.Wai (Application, Response, responseLBS, pathInfo)
+import Network.Wai (Application, Response, pathInfo, responseLBS)
 import Network.Wai.Handler.Warp (run)
 
 -- helper for constructing Responses
@@ -25,7 +25,7 @@ serveNotFound :: [T.Text] -> IO Response
 serveNotFound path =
   let showPath = T.intercalate (T.pack "/") path
       contents = T.append (T.pack "Not found: ") showPath
-  in return $ makeResponse status404 contents
+   in return $ makeResponse status404 contents
 
 -- we can't pattern match on Text, so we use guards and (==)
 servePath :: [T.Text] -> IO Response
@@ -38,7 +38,7 @@ servePath path
 application :: Application
 application request respond = do
   let path = pathInfo request
-  response <- servePath path   -- run IO operation to produce response
+  response <- servePath path -- run IO operation to produce response
   respond response
 
 port :: Int

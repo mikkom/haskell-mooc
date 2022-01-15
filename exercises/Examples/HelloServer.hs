@@ -1,6 +1,6 @@
 module Examples.HelloServer where
 
-import qualified Data.ByteString.Lazy.Char8 as LB
+import qualified Data.ByteString.Lazy.Char8 as BL
 import Network.HTTP.Types.Status (status200)
 import Network.Wai (Application, responseLBS)
 import Network.Wai.Handler.Warp (run)
@@ -14,4 +14,4 @@ main = run port application
 -- type Application = Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
 application :: Application
 application request respond =
-  respond (responseLBS status200 [] (LB.pack "Hello World!"))
+  respond (responseLBS status200 [] (BL.pack "Hello World!"))
