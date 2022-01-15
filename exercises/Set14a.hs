@@ -27,11 +27,12 @@ import Mooc.Todo
 --  greetText (T.pack "Benedict Cumberbatch") ==> "Hello, Benedict Cumber...!"
 
 greetText :: T.Text -> T.Text
-greetText name = T.concat [T.pack "Hello, ", getName name, T.pack "!"]
-  where
-    getName name
-      | T.length name > 15 = T.append (T.take 15 name) (T.pack "...")
-      | otherwise = name
+greetText name = T.pack "Hello, " <> shorten 15 name <> T.pack "!"
+
+shorten :: Int -> T.Text -> T.Text
+shorten n t
+  | T.length t > n = T.take n t <> T.pack "..."
+  | otherwise = t
 
 ------------------------------------------------------------------------------
 -- Ex 2: Capitalize every second word of a Text.
@@ -43,11 +44,9 @@ greetText name = T.concat [T.pack "Hello, ", getName name, T.pack "!"]
 --     ==> "WORD"
 
 shout :: T.Text -> T.Text
-shout = T.unwords . everyOther (T.map toUpper) True . T.words
+shout = T.unwords . zipWith ($) fs . T.words
   where
-    everyOther f _ [] = []
-    everyOther f True (w : ws) = f w : everyOther f False ws
-    everyOther f False (w : ws) = w : everyOther f True ws
+    fs = cycle [T.toUpper, id]
 
 ------------------------------------------------------------------------------
 -- Ex 3: Find the longest sequence of a single character repeating in
@@ -64,6 +63,9 @@ longestRepeat = go 0 . T.uncons
     go len (Just (x, xs)) =
       let len' = T.length $ T.takeWhile (== x) xs
        in go (max len (len' + 1)) (T.uncons (T.drop len' xs))
+
+longestRepeat' :: T.Text -> Int
+longestRepeat' = maximum . (0 :) . map T.length . T.group
 
 ------------------------------------------------------------------------------
 -- Ex 4: Given a lazy (potentially infinite) Text, extract the first n
@@ -88,12 +90,9 @@ takeStrict n = TL.toStrict . TL.take n
 --   byteRange (B.pack [3]) ==> 0
 
 byteRange :: B.ByteString -> Word8
-byteRange bytes = case B.uncons bytes of
-  Nothing -> 0
-  Just (x, xs) -> go x x (B.uncons xs)
-  where
-    go lo hi Nothing = hi - lo
-    go lo hi (Just (x, xs)) = go (min x lo) (max x hi) $ B.uncons xs
+byteRange b
+  | B.null b = 0
+  | otherwise = B.maximum b - B.minimum b
 
 ------------------------------------------------------------------------------
 -- Ex 6: Compute the XOR checksum of a ByteString. The XOR checksum of
@@ -146,4 +145,4 @@ countUtf8Chars = toMaybe . fmap T.length . decodeUtf8'
 --     ==> [0,1,2,2,1,0,0,1,2,2,1,0,0,1,2,2,1,0,0,1]
 
 pingpong :: B.ByteString -> BL.ByteString
-pingpong x = BL.append (BL.fromStrict x) (pingpong $ B.reverse x)
+pingpong x = BL.fromStrict x <> pingpong (B.reverse x)
