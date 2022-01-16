@@ -76,7 +76,7 @@ getAllQuery = Query (T.pack "SELECT account, amount FROM events;")
 openDatabase :: String -> IO Connection
 openDatabase filename = do
   db <- open filename
-  execute db initQuery ()
+  execute_ db initQuery
   pure db
 
 -- given a db connection, an account name, and an amount, deposit
@@ -157,14 +157,12 @@ parseInt :: T.Text -> Maybe Int
 parseInt = readMaybe . T.unpack
 
 parseCommand :: [T.Text] -> Maybe Command
-parseCommand path
-  | length path == 2 && head path == T.pack "balance" =
-    Just $ Balance (path !! 1)
-  | length path == 3 && head path == T.pack "deposit" =
-    Deposit (path !! 1) <$> parseInt (path !! 2)
-  | length path == 3 && head path == T.pack "withdraw" =
-    Withdraw (path !! 1) <$> parseInt (path !! 2)
-  | otherwise = Nothing
+parseCommand [command, account]
+  | command == T.pack "balance" = Just $ Balance account
+parseCommand [command, account, amountText]
+  | command == T.pack "deposit" = Deposit account <$> parseInt amountText
+  | command == T.pack "withdraw" = Withdraw account <$> parseInt amountText
+parseCommand _ = Nothing
 
 ------------------------------------------------------------------------------
 -- Ex 4: Running commands. Implement the IO operation perform that takes a
