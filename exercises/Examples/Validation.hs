@@ -1,10 +1,10 @@
-module Examples.Validation (Validation,invalid,check) where
+module Examples.Validation (Validation, invalid, check) where
 
 import Control.Applicative
 import Data.Char (isDigit)
 
 data Validation a = Ok a | Errors [String]
-  deriving (Show,Eq)
+  deriving (Show, Eq)
 
 instance Functor Validation where
   fmap f (Ok x) = Ok (f x)
@@ -12,10 +12,10 @@ instance Functor Validation where
 
 instance Applicative Validation where
   pure x = Ok x
-  liftA2 f (Ok x)      (Ok y)      = Ok (f x y)
-  liftA2 f (Errors e1) (Ok y)      = Errors e1
-  liftA2 f (Ok x)      (Errors e2) = Errors e2
-  liftA2 f (Errors e1) (Errors e2) = Errors (e1++e2)
+  liftA2 f (Ok x) (Ok y) = Ok (f x y)
+  liftA2 f (Errors e1) (Ok y) = Errors e1
+  liftA2 f (Ok x) (Errors e2) = Errors e2
+  liftA2 f (Errors e1) (Errors e2) = Errors (e1 ++ e2)
 
 invalid :: String -> Validation a
 invalid err = Errors [err]
@@ -31,9 +31,10 @@ check b err x
 
 birthday :: String -> Int -> Validation String
 birthday name age = liftA2 congratulate checkedName checkedAge
-  where checkedName = check (length name < 10) "Name too long" name
-        checkedAge = check (age < 99) "Too old" age
-        congratulate n a = "Happy "++show a++"th birthday "++n++"!"
+  where
+    checkedName = check (length name < 10) "Name too long" name
+    checkedAge = check (age < 99) "Too old" age
+    congratulate n a = "Happy " ++ show a ++ "th birthday " ++ n ++ "!"
 
 -- birthday "Guy" 31
 --   ==> Ok "Happy 31th birthday Guy!"
@@ -49,9 +50,10 @@ birthday name age = liftA2 congratulate checkedName checkedAge
 -- via recursion
 allPositive :: [Int] -> Validation [Int]
 allPositive [] = Ok []
-allPositive (x:xs) = liftA2 (:) checkThis checkRest
-  where checkThis = check (x>=0) ("Not positive: "++show x) x
-        checkRest = allPositive xs
+allPositive (x : xs) = liftA2 (:) checkThis checkRest
+  where
+    checkThis = check (x >= 0) ("Not positive: " ++ show x) x
+    checkRest = allPositive xs
 
 -- allPositive [1,2,3] ==>  Ok [1,2,3]
 -- allPositive [1,2,3,-4] ==> Errors ["Not positive: -4"]
@@ -60,7 +62,8 @@ allPositive (x:xs) = liftA2 (:) checkThis checkRest
 -- via traverse
 allPositive' :: [Int] -> Validation [Int]
 allPositive' xs = traverse checkNumber xs
-  where checkNumber x = check (x>=0) ("Not positive: "++show x) x
+  where
+    checkNumber x = check (x >= 0) ("Not positive: " ++ show x) x
 
 ---
 --- Alternative instance
@@ -70,14 +73,14 @@ instance Alternative Validation where
   empty = Errors []
   Ok x <|> _ = Ok x
   Errors e1 <|> Ok y = Ok y
-  Errors e1 <|> Errors e2 = Errors (e1++e2)
+  Errors e1 <|> Errors e2 = Errors (e1 ++ e2)
 
 ----
 ---- Example: parsing contact information:
 ----
 
 data ContactInfo = Email String | Phone String
-  deriving Show
+  deriving (Show)
 
 validateEmail :: String -> Validation ContactInfo
 validateEmail s = check (elem '@' s) "Not an email: should contain a @" (Email s)
