@@ -35,9 +35,9 @@ sumTwoMaybes = liftA2 (+)
 --         "code is not suffering","code is not life"]
 
 statements :: [String] -> [String] -> [String]
-statements xs ys = (++) <$> prefixes <*> ys
+statements xs = liftA2 (++) prefixes
   where
-    prefixes = (++) <$> xs <*> [" is ", " is not "]
+    prefixes = liftA2 (++) xs [" is ", " is not "]
 
 ------------------------------------------------------------------------------
 -- Ex 3: A simple calculator with error handling. Given an operation
