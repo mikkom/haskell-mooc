@@ -17,9 +17,7 @@ import Test.QuickCheck
 --  +++ OK, passed 1 test.
 
 isSorted :: (Show a, Ord a) => [a] -> Property
-isSorted [] = True === True
-isSorted [x] = True === True
-isSorted xs = forAll (elements [0 .. (length xs - 2)]) (\i -> xs !! i <= xs !! (i + 1))
+isSorted xs = xs === sort xs
 
 ------------------------------------------------------------------------------
 -- Ex 2: In this and the following exercises, we'll build a suite of
@@ -143,11 +141,13 @@ freq3 (x : xs) = [(x, 1 + length (filter (== x) xs))]
 
 frequenciesProp :: ([Char] -> [(Char, Int)]) -> NonEmptyList Char -> Property
 frequenciesProp freq (NonEmpty input) =
-  sumIsLength input output
-    .&&. inputInOutput input output
-    .&&. outputInInput input output
-  where
-    output = freq input
+  let output = freq input
+   in counterexample ("Output was " ++ show output) $
+        conjoin
+          [ counterexample "sumIsLength" $ sumIsLength input output,
+            counterexample "inputInOutput" $ inputInOutput input output,
+            counterexample "outputInInput" $ outputInInput input output
+          ]
 
 frequencies :: Eq a => [a] -> [(a, Int)]
 frequencies [] = []
@@ -228,14 +228,10 @@ data Expression = Plus Arg Arg | Minus Arg Arg
   deriving (Show, Eq)
 
 instance Arbitrary Arg where
-  arbitrary = oneof $ map elements [vars, nums]
+  arbitrary = oneof [genVar, genNum]
     where
-      vars = map Variable (['a' .. 'c'] ++ ['x' .. 'z'])
-      nums = map Number [0 .. 10]
+      genVar = Variable <$> elements "abcxyz"
+      genNum = Number <$> choose (0, 10)
 
 instance Arbitrary Expression where
-  arbitrary = do
-    arg1 <- arbitrary :: Gen Arg
-    arg2 <- arbitrary :: Gen Arg
-    op <- elements [Plus, Minus]
-    pure $ op arg1 arg2
+  arbitrary = elements [Plus, Minus] <*> arbitrary <*> arbitrary
